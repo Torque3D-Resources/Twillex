@@ -1,0 +1,75 @@
+$managedDatablockSet = new SimSet() {
+   canSaveDynamicFields = "1";
+      setType = "Datablocks";
+
+   new t2dImageMapDatablock(FlourSackImageMap) {
+      imageName = "~/data/images/FlourSack.png";
+      imageMode = "CELL";
+      frameCount = "-1";
+      filterMode = "SMOOTH";
+      filterPad = "1";
+      preferPerf = "1";
+      cellRowOrder = "1";
+      cellOffsetX = "0";
+      cellOffsetY = "0";
+      cellStrideX = "0";
+      cellStrideY = "0";
+      cellCountX = "-1";
+      cellCountY = "-1";
+      cellWidth = "85";
+      cellHeight = "112";
+      preload = "1";
+      allowUnload = "0";
+      force16Bit = "0";
+   };
+   new t2dAnimationDatablock(FlourSackAnimation) {
+      imageMap = "FlourSackImageMap";
+      animationFrames = "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22";
+      animationTime = "0.766667";
+      animationCycle = "0";
+      randomStart = "0";
+      startFrame = "0";
+      animationPingPong = "0";
+      animationReverse = "0";
+   };
+   new t2dImageMapDatablock(pointerImageMap) {
+      imageName = "~/data/images/pointer.png";
+      imageMode = "FULL";
+      frameCount = "-1";
+      filterMode = "SMOOTH";
+      filterPad = "0";
+      preferPerf = "1";
+      cellRowOrder = "1";
+      cellOffsetX = "0";
+      cellOffsetY = "0";
+      cellStrideX = "0";
+      cellStrideY = "0";
+      cellCountX = "-1";
+      cellCountY = "-1";
+      cellWidth = "0";
+      cellHeight = "0";
+      preload = "1";
+      allowUnload = "0";
+      force16Bit = "0";
+   };
+   new t2dImageMapDatablock(circleImageMap) {
+      imageName = "~/data/images/circle.png";
+      imageMode = "FULL";
+      frameCount = "-1";
+      filterMode = "SMOOTH";
+      filterPad = "0";
+      preferPerf = "1";
+      cellRowOrder = "1";
+      cellOffsetX = "0";
+      cellOffsetY = "0";
+      cellStrideX = "0";
+      cellStrideY = "0";
+      cellCountX = "-1";
+      cellCountY = "-1";
+      cellWidth = "0";
+      cellHeight = "0";
+      preload = "1";
+      allowUnload = "0";
+      force16Bit = "0";
+   };
+};
