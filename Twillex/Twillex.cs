@@ -1,9 +1,17 @@
 //-----------------------------------------------------------------------------
 // Twillex - Scene Object Tweening
-// version 1.0
+// version 1.0.1
 // copyright 2012: Charles Patterson
-// use, modify, and distribute freely, but leave the credits
+// BSD License: use, modify, and distribute freely, but leave the credits
 //
+//
+// DOWNLOAD AND DOCUMENTATION
+//
+// For the latest version and instructions/discussions/etc. go to http://sourceforge.net/p/twillex
+// There you will also find a "Twillex Test Game" which is realy a scene that lets you manipulate
+// Tween parameters and see what happens.
+//
+// A decent amount of instructions are below, though, to get started quickly.
 //
 // DEFINITION:
 //
