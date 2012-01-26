@@ -1,0 +1,12 @@
+<TorsionProjectOptions>
+<Address>127.0.0.1</Address>
+<Password>password</Password>
+<Port>6060</Port>
+<LastConfig>Release</LastConfig>
+<Breakpoints/>
+<Bookmarks/>
+<OpenFiles>
+<File ScrollX="0" ScrollY="457" Active="true">game\gameScripts\testTwillex.cs</File>
+<File ScrollX="0" ScrollY="559">game\libraries\Twillex.cs</File>
+</OpenFiles>
+</TorsionProjectOptions>
