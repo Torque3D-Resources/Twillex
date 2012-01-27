@@ -694,25 +694,25 @@ function Tween::initInterpolationRangeSpecialField(%this, %field, %value, %relat
          return true;
 
       case "sx":
-         %this.startValueSizeX = getWord(%this.target.getSize(), 0);
+         %this.startValueSX = getWord(%this.target.getSize(), 0);
 
          if(%relative)
-            %this.endValueSizeX = %this.startValueSizeX + %value;
+            %this.endValueSX = %this.startValueSX + %value;
          else
-            %this.endValueSizeX = %value;
+            %this.endValueSX = %value;
 
-         %this.diffValueSizeX = %this.endValueSizeX - %this.startValueSizeX;
+         %this.diffValueSX = %this.endValueSX - %this.startValueSX;
          return true;
 
       case "sy":
-         %this.startValueSizeY = getWord(%this.target.getSize(), 1);
+         %this.startValueSY = getWord(%this.target.getSize(), 1);
 
          if(%relative)
-            %this.endValueSizeY = %this.startValueSizeY + %value;
+            %this.endValueSY = %this.startValueSY + %value;
          else
-            %this.endValueSizeY = %value;
+            %this.endValueSY = %value;
 
-         %this.diffValueSizeY = %this.endValueSizeY - %this.startValueSizeY;
+         %this.diffValueSY = %this.endValueSY - %this.startValueSY;
          return true;
 
       case "r":
@@ -749,14 +749,14 @@ function Tween::initInterpolationRangeSpecialField(%this, %field, %value, %relat
          return true;
 
       case "a":
-         %this.startValueAlpha = getWord(%this.target.getBlendColor(), 3);
+         %this.startValueA = getWord(%this.target.getBlendColor(), 3);
 
          if(%relative)
-            %this.endValueAlpha = %this.startValueAlpha + %value;
+            %this.endValueA = %this.startValueA + %value;
          else
-            %this.endValueAlpha = %value;
+            %this.endValueA = %value;
 
-         %this.diffValueAlpha = %this.endValueAlpha - %this.startValueAlpha;
+         %this.diffValueA = %this.endValueA - %this.startValueA;
          return true;
 
       default:
@@ -954,17 +954,17 @@ function Tween::interpolateSpecialField(%this, %field, %ft)
          return true;
 
       case "sx":
-         %value = %this.startValueSizeX + %ft * %this.diffValueSizeX;
+         %value = %this.startValueSX + %ft * %this.diffValueSX;
          %this.target.setSizeX(%value);
          return true;
 
       case "sy":
-         %value = %this.startValueSizeY + %ft * %this.diffValueSizeY;
+         %value = %this.startValueSY + %ft * %this.diffValueSY;
          %this.target.setSizeY(%value);
          return true;
 
       case "a":
-         %value = %this.startValueAlpha + %ft * %this.diffValueAlpha;
+         %value = %this.startValueA + %ft * %this.diffValueA;
          %this.target.setBlendAlpha(%value);
          return true;
 
