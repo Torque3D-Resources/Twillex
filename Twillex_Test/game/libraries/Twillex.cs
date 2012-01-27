@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // Twillex - Scene Object Tweening
-// version 1.0
+// version 1.0.1
 // copyright 2012: Charles Patterson
 // use, modify, and distribute freely, but leave the credits
 //
