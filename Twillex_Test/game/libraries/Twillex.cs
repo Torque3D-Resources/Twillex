@@ -61,7 +61,7 @@
 //
 // Twillex cannot be sure what your fields will be called so it accepts them all, such as "position"
 // or "text" or "myVar".  You may get an error at run-time if the field didn't exist or wasn't a
-// short-cut field as was described earlier.  We also see a second string which holds params that affect
+// short-cut field as was described earlier.  We also see a second string which holds control params that affect
 // the way the Tween plays out.  Due to our "yoyo" param, this Tween plays through then plays
 // backwards to the beginning and stops (all within 500 milliseconds).  Since we wanted a one-time
 // Tween, we used toOnce().  This is a convenience function which calls play() for you and also
@@ -186,14 +186,14 @@ function Twillex::onRemove(%this)
    %this.idle.delete();
 }
 
-function Twillex::to(%this, %rawDuration, %target, %fields, %params)
+function Twillex::to(%this, %rawDuration, %target, %fields, %controls)
 {
    if (! isObject(%target)) {
       error("Twillex::to: target '", %target, "' is not an object.  Tween not created.");
       return;
    }
 
-   %tweenData = %this.initTweenData(%rawDuration, %fields, %params);
+   %tweenData = %this.initTweenData(%rawDuration, %fields, %controls);
    if (%tweenData == 0) {
       error("Twillex::to: trouble creating TweenData.  Tween not created.");
       return;
@@ -216,18 +216,18 @@ function Twillex::to(%this, %rawDuration, %target, %fields, %params)
    return %tween;
 }
 
-function Twillex::toOnce(%this, %rawDuration, %target, %fields, %params)
+function Twillex::toOnce(%this, %rawDuration, %target, %fields, %controls)
 {
    // like to() except this is meant to be a one-time Tween, so set it to
    // delete itself at the end, and start it for the caller.
 
-   %params = %params @ (%params $= "" ? "" : ", ") @ "delete:true";
-   %tween = %this.to(%rawDuration, %target, %fields, %params);
+   %controls = %controls @ (%controls $= "" ? "" : ", ") @ "delete:true";
+   %tween = %this.to(%rawDuration, %target, %fields, %controls);
    %tween.play();
    return %tween;
 }
 
-function Twillex::from(%this, %rawDuration, %target, %fields, %params)
+function Twillex::from(%this, %rawDuration, %target, %fields, %controls)
 {
    // like to() except that we *end* the Tween in its current position
    // just a convenience function, as we could have created a to() Tween,
@@ -236,22 +236,22 @@ function Twillex::from(%this, %rawDuration, %target, %fields, %params)
    // hack here: we'll create a normal Tween,
    // and then cheat and swap the start and end data
 
-   %tween = %this.to(%rawDuration, %target, %fields, %params);
+   %tween = %this.to(%rawDuration, %target, %fields, %controls);
    Twillex::convertToFrom(%tween);
    return %tween;
 }
 
-function Twillex::fromOnce(%this, %rawDuration, %target, %fields, %params)
+function Twillex::fromOnce(%this, %rawDuration, %target, %fields, %controls)
 {
    // hack here: we'll create a normal Tween, including starting it,
    // and then cheat and swap the start and end data
 
-   %tween = %this.toOnce(%rawDuration, %target, %fields, %params);
+   %tween = %this.toOnce(%rawDuration, %target, %fields, %controls);
    Twillex::convertToFrom(%tween);
    return %tween;   
 }
 
-function Twillex::initTweenData(%this, %rawDuration, %fields, %params)
+function Twillex::initTweenData(%this, %rawDuration, %fields, %controls)
 {
    // tweenData will hold the read-only Tween properties (not the current state of the Tween).
 
@@ -279,11 +279,11 @@ function Twillex::initTweenData(%this, %rawDuration, %fields, %params)
    // save a list of fields to be tweened
    %tweenData.fields = %keys;
 
-   // * put in the parameters
+   // * put in the control parameters
    // load up tweening parameters after checking them to a white list
-   %keys = Twillex::parseStringArgs(%params, $Twillex::paramValues, %tweenData);
+   %keys = Twillex::parseStringArgs(%controls, $Twillex::paramValues, %tweenData);
    if ( %keys $= "0" ) {
-      error("Twillex::initTweenData: args '", %params, "' are not valid.  failed to make TweenData.");
+      error("Twillex::initTweenData: control parameters '", %control, "' are not valid.  failed to make TweenData.");
       %tweenData.delete();
       return 0;
    }
