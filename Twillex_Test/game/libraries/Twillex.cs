@@ -4,6 +4,10 @@
 // copyright 2012: Charles Patterson
 // BSD License: use, modify, and distribute freely, but leave the credits
 //
+// Thanks to Lukas Joergensen for adding
+//   * Torque3D support! (z values and a schedule-based loop)
+//   * Global variables
+//   * running eval() on the completion of a Tween
 //
 // DOWNLOAD AND DOCUMENTATION
 //
@@ -98,6 +102,12 @@
 //    myTweenEngine.onUpdate();
 // }
 //
+// Or if you prefer, instead of calling t2dSceneGraph::onUpdateSceneTick,
+// call Twillex::startUpdates() once and it will continue to schedule Twillex::onUpdate().
+// Note: Torque3D does not have a scene graph onUpdateSceneTick() and must use this function.
+//
+//   myTweenEngine.startUpdates();
+//
 // Note that you don't have to call onUpdate on the individual Tweens, just the Twillex engines.
 
 
@@ -186,14 +196,16 @@ function Twillex::onRemove(%this)
    %this.idle.delete();
 }
 
-function Twillex::to(%this, %rawDuration, %target, %fields, %controls)
+function Twillex::to(%this, %rawDuration, %target, %fields, %controls, %completionEval)
 {
-   if (! isObject(%target)) {
+   // %target should be the object affected by this Tween...
+   // or use the string "globals" to put the Tween in a mode that affects global variables
+   if (! isObject(%target) && %target !$= "globals") {
       error("Twillex::to: target '", %target, "' is not an object.  Tween not created.");
       return;
    }
 
-   %tweenData = %this.initTweenData(%rawDuration, %fields, %controls);
+   %tweenData = %this.initTweenData(%rawDuration, %fields, %controls, %completionEval);
    if (%tweenData == 0) {
       error("Twillex::to: trouble creating TweenData.  Tween not created.");
       return;
@@ -204,7 +216,8 @@ function Twillex::to(%this, %rawDuration, %target, %fields, %controls)
 
    %tween = new ScriptObject() {
       class = Tween;
-      target = %target;
+      target = isObject(%target) ? %target : "";
+      driveGlobals = %target $= "globals";
       tweenData = %tweenData;
 
       // cross reference Tween with the engine running it so we can talk to the engine
@@ -216,18 +229,18 @@ function Twillex::to(%this, %rawDuration, %target, %fields, %controls)
    return %tween;
 }
 
-function Twillex::toOnce(%this, %rawDuration, %target, %fields, %controls)
+function Twillex::toOnce(%this, %rawDuration, %target, %fields, %controls, %completionEval)
 {
    // like to() except this is meant to be a one-time Tween, so set it to
    // delete itself at the end, and start it for the caller.
 
    %controls = %controls @ (%controls $= "" ? "" : ", ") @ "delete:true";
-   %tween = %this.to(%rawDuration, %target, %fields, %controls);
+   %tween = %this.to(%rawDuration, %target, %fields, %controls, %completionEval);
    %tween.play();
    return %tween;
 }
 
-function Twillex::from(%this, %rawDuration, %target, %fields, %controls)
+function Twillex::from(%this, %rawDuration, %target, %fields, %controls, %completionEval)
 {
    // like to() except that we *end* the Tween in its current position
    // just a convenience function, as we could have created a to() Tween,
@@ -236,22 +249,22 @@ function Twillex::from(%this, %rawDuration, %target, %fields, %controls)
    // hack here: we'll create a normal Tween,
    // and then cheat and swap the start and end data
 
-   %tween = %this.to(%rawDuration, %target, %fields, %controls);
+   %tween = %this.to(%rawDuration, %target, %fields, %controls, %completionEval);
    Twillex::convertToFrom(%tween);
    return %tween;
 }
 
-function Twillex::fromOnce(%this, %rawDuration, %target, %fields, %controls)
+function Twillex::fromOnce(%this, %rawDuration, %target, %fields, %controls, %completionEval)
 {
    // hack here: we'll create a normal Tween, including starting it,
    // and then cheat and swap the start and end data
 
-   %tween = %this.toOnce(%rawDuration, %target, %fields, %controls);
+   %tween = %this.toOnce(%rawDuration, %target, %fields, %controls, %completionEval);
    Twillex::convertToFrom(%tween);
    return %tween;   
 }
 
-function Twillex::initTweenData(%this, %rawDuration, %fields, %controls)
+function Twillex::initTweenData(%this, %rawDuration, %fields, %controls, %completionEval)
 {
    // tweenData will hold the read-only Tween properties (not the current state of the Tween).
 
@@ -306,6 +319,9 @@ function Twillex::initTweenData(%this, %rawDuration, %fields, %controls)
       }
    }
    %tweenData.interpolator = Twillex::getInterpolationFunction(%tweenData.ease);
+
+   if (%completionEval !$= "")
+      %tweenData.completionEval = %completionEval;
 
    return %tweenData;
 }
@@ -398,7 +414,10 @@ function Twillex::parseStringArgs(%args, %validKeys, %object)
    // returns the list of keys found.  otherwise, returns 0 on error
 
    // see if the arg structure is correct, and collect the keys if so
-   %copy = %args;
+   %keyCount = 0;
+   // if we are tweening global variables, then keys may be things like $myClass::xyz.
+   // we must hide the "::" so that it won't interfere with the use of colon between key and value
+   %copy = strreplace(%args, "::", "++");
    while (%copy !$= "") {
       %copy = nextToken(%copy, pair, ",");
 
@@ -411,18 +430,15 @@ function Twillex::parseStringArgs(%args, %validKeys, %object)
          return "0";
       }
 
-      %key = trim(%key);
+      %key = trim(strreplace(%key, "++", "::"));
       %keys = %keys $= "" ? %key : %keys SPC %key;
+      %keyCount++;
    }
 
    // so far so good, would we like to check if the keys are all in %validKeys?
    if (%validKeys !$= "") {
-      %copy = %args;
-      while (%copy !$= "") {
-         %copy = nextToken(%copy, pair, ",");
-         %value = nextToken(%pair, key, ":");
-
-         %key = trim(%key);
+      for (%i = 0; %i < %keyCount; %i++) {
+         %key = trim(getWord(%keys, %i));
          if (strstr(%validKeys, strlwr(%key)) < 0) {
             error("Twillex::parseStringArgs: arg '", %key, "' not in list '", %validKeys, "'");
             return "0";
@@ -439,12 +455,12 @@ function Twillex::parseStringArgs(%args, %validKeys, %object)
       return "0";
    }
    
-   %copy = %args;
+   %copy = strreplace(%args, "::", "++");
    while (%copy !$= "") {
       %copy = nextToken(%copy, pair, ",");
       %value = nextToken(%pair, key, ":");
 
-      %object.setFieldValue(trim(%key), trim(%value));
+      %object.setFieldValue(trim(strreplace(%key, "++", "::")), trim(%value));
    }
    
    return %keys;
@@ -485,7 +501,7 @@ function Twillex::onUpdate(%this)
       // note that SimSets normally remove reference to objects that have been deleted, but
       // we are worried about the targets of the tweens, not the Tween itself.
       // This list wouldn't notice the targets being deleted, but then the Tween would be useless.
-      if(!isObject(%tween.target))
+      if(!isObject(%tween.target) && ! %tween.driveGlobals)
       {
          echo("Twillex::onUpdate: found an Tween with a bad target.  Deleting it.");
          %tween.delete();
@@ -497,6 +513,21 @@ function Twillex::onUpdate(%this)
    }
 
    // TODO: when is a good chance to prune the idle list?  here but every 5 seconds or a minute?
+}
+
+// If you prefer, instead of calling t2dSceneGraph::onUpdateSceneTick, call Twillex::startUpdates()
+// once and it will continue to run Twillex at the specified interval.
+// Note: Torque3D does not have a scene graph onUpdateSceneTick() and must use this function.
+function Twillex::startUpdates(%this, %millis)
+{
+   if(!isObject(%this))
+      return;
+
+   if (%millis $= "")
+      %millis = 32;
+
+   %this.onUpdate();
+   %this.schedule(%millis, startUpdates);
 }
 
 // ---------------------------------------------
@@ -660,7 +691,8 @@ function Tween::initInterpolationRanges(%this)
       %value = %this.tweenData.getFieldValue(%field);
 
       // handle "syntactic sugar" cases for scene objects like "x" (position x) or "r" (blendColor red)
-      if (%this.initInterpolationRangeSpecialField(%field, %value, %relative))
+      if (%this.initInterpolationRangeSpecialField(%field, %value, %relative)
+          || %this.initInterpolationRangeGlobals(%field, %value, %relative))
          continue;
 
       // wasn't a special case?  then do the normal field setup
@@ -700,6 +732,17 @@ function Tween::initInterpolationRangeSpecialField(%this, %field, %value, %relat
 
          %this.diffValueY = %this.endValueY - %this.startValueY;
          return true;
+         
+      case "z":
+         %this.startValueZ = getWord(%this.target.getPosition(), 2);
+
+         if(%relative)
+            %this.endValueZ = %this.startValueZ + %value;
+         else
+            %this.endValueZ = %value;
+
+         %this.diffValueZ = %this.endValueZ - %this.startValueZ;
+         return true;
 
       case "sx":
          %this.startValueSX = getWord(%this.target.getSize(), 0);
@@ -721,6 +764,17 @@ function Tween::initInterpolationRangeSpecialField(%this, %field, %value, %relat
             %this.endValueSY = %value;
 
          %this.diffValueSY = %this.endValueSY - %this.startValueSY;
+         return true;
+         
+      case "sz":
+         %this.startValueSZ = getWord(%this.target.getSize(), 2);
+
+         if(%relative)
+            %this.endValueSZ = %this.startValueSZ + %value;
+         else
+            %this.endValueSZ = %value;
+
+         %this.diffValueSZ = %this.endValueSZ - %this.startValueSZ;
          return true;
 
       case "r":
@@ -770,6 +824,27 @@ function Tween::initInterpolationRangeSpecialField(%this, %field, %value, %relat
       default:
          return false;
    }
+}
+
+function Tween::initInterpolationRangeGlobals(%this, %field, %value, %relative)
+{
+	if(!%this.driveGlobals)
+	   return false;
+
+   // we're going to make a variable name out of some global var name like $xyz or $myClass::name
+   // so clean out any pesky characters like $ or :
+   %field_simple = strreplace(%field, ":", "_");
+   %field_simple = strreplace(%field_simple, "$", "_");   
+
+   // have to "eval" to get the value of the global stored in %field
+   %start = eval("return " @ %field @ ";");
+   %end = %relative ? Tween::vectorAdd(%start, %value) : %value;
+   %diff = Tween::vectorSub(%end, %start);
+
+   %this.setFieldValue(startValueGlobal @ %field_simple, %start);
+   %this.setFieldValue(endValueGlobal @ %field_simple, %end);
+   %this.setFieldValue(diffValueGlobal @ %field_simple, %diff);
+   return true;
 }
 
 /* static protected */
@@ -823,6 +898,9 @@ function Tween::onUpdate(%this, %elapsedTime)
    // stop, end on exactly last frame, call onComplete, maybe delete.
    %this.stop();
    %this.fforward();
+
+   if (%this.tweenData.completionEval !$= "")
+      eval(%this.tweenData.completionEval);
 
    if (%this.tweenData.onComplete !$= "")
       %this.target.call(%this.tweenData.onComplete, %this);
@@ -928,7 +1006,7 @@ function Tween::interpolateAllFields(%this)
 function Tween::interpolate(%this, %field, %ft)
 {
    // handle "syntactic sugar" cases for scene objects fields like "x" (position x) or "r" (blendColor red)
-   if (%this.interpolateSpecialField(%field, %ft))
+   if (%this.interpolateSpecialField(%field, %ft) || %this.interpolateGlobals(%field, %ft))
       return;
 
    // wasn't a special case?  OK, grab generic fields and interpolate
@@ -994,6 +1072,32 @@ function Tween::interpolateSpecialField(%this, %field, %ft)
       default:
          return false;
    }
+}
+
+function Tween::interpolateGlobals(%this, %field, %ft)
+{
+	if(!%this.driveGlobals)
+	   return false;
+
+   // we're going to make a variable name out of some global var name like $xyz or $myClass::name
+   // so clean out any pesky characters like $ or :
+   %field_simple = strreplace(%field, ":", "_");
+   %field_simple = strreplace(%field_simple, "$", "_");   
+
+   %start = %this.getFieldValue(startValueGlobal @ %field_simple);
+   %diff = %this.getFieldValue(diffValueGlobal @ %field_simple);
+   %value = "";
+
+   // interpolate each element of a vector independently
+   // (or if this was a scalar, that will work too)
+   for (%i = 0; %i < getWordCount(%start); %i++) {
+      %elemStart = getWord(%start, %i);
+      %elemDiff = getWord(%diff, %i);
+      %elemValue = %elemStart + %ft * %elemDiff;
+      %value = %i == 0 ? %elemValue : %value SPC %elemValue;
+   }
+   eval(%field @ " = \"" @ %value @ "\";");
+   return true;
 }
 
 // ---------------------------------------------
