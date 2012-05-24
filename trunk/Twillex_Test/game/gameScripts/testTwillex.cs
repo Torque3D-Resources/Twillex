@@ -519,3 +519,16 @@ function rewindTween() { $mainTween.rewind(); }
 function fforwardTween() { $mainTween.fforward(); }
 function reverseTween() { $mainTween.reverse(); }
 function forwardTween() { $mainTween.forward(); }
+
+
+//---------------
+
+/*
+// test for tweening global vars
+$xyz = 3;
+$ns::xyz = "100 50";
+Tweener.toOnce(30000, globals, "$ns::xyz: 10000 5000, $xyz: -10000");
+
+// tests for running eval() on completion (try whatever as an eval string)
+Tweener.toOnce(3000, globals, "$ns::abc: 3", "", "%this.hi();");
+*/

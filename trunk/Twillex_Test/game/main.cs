@@ -13,6 +13,8 @@ function initializeProject()
    /* Twillex test code begin */
    exec("./libraries/Twillex.cs");
    Twillex::create(Tweener);
+   // Torque3D users, set this!
+   // Tweener.startUpdates();
 
    exec("./gameScripts/testTwillex.cs");
    /* Twillex test code end */
