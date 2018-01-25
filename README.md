@@ -10,11 +10,11 @@ Use "easing" algorithms to ease in and out almost any parameters in your game: p
 
 ## Features
 
-Tween SceneObjects physical parameters: position, rotation, color, alpha
-Use common "easing" algorithms: linear, quadratic, "elastic," "bounce," etc.
-Lots of control of Tweens: repeat, yoyo, reverse, auto-delete, etc.
-"Flipflop" -- New feature for tweening! Reverse direction of Tween but not the ease
-Tween GUI positions, animation rates, or your own variables, too.
+* Tween SceneObjects physical parameters: position, rotation, color, alpha
+* Use common "easing" algorithms: linear, quadratic, "elastic," "bounce," etc.
+* Lots of control of Tweens: repeat, yoyo, reverse, auto-delete, etc.
+* "Flipflop" -- New feature for tweening! Reverse direction of Tween but not the ease
+* Tween GUI positions, animation rates, or your own variables, too.
 
 
 Fork from: https://sourceforge.net/projects/twillex/
